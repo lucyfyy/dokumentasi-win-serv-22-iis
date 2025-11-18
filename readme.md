@@ -1,10 +1,14 @@
 # Rollout Server Production JBT (Windows Server 2022)
 ## Pre-requirements
 1. Postgresql 16.11 [Download Here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-2. IIS (Internet Information Services)
-3. PHP 8.3 [Download Here](https://www.php.net/downloads.php?usage=web&os=windows&osvariant=windows-downloads&version=8.3)
+2. PHP 8.3 [Download Here](https://www.php.net/downloads.php?usage=web&os=windows&osvariant=windows-downloads&version=8.3)
+3. IIS (Internet Information Services)
 4. Git [Download Here](https://git-scm.com/install/windows)
 5. Composer [Download Here](https://getcomposer.org/download/)
+6. File backup database yang dibackup menggunakan command berikut
+```
+pg_dump -U postgres -Fc -f relaypro.dump relaypro
+```
 
 ## Installation
 ### Postgresql
@@ -16,6 +20,12 @@
 6. Tunggu sampai proses penginstallan selesai.
 7. Uncheck `postgre builder` jika tidak dibutuhkan (agar hemat waktu).
 8. Klik `Finish`.
+9. Masuk ke direktori `C:\Program Files\PostgreSQL\16\data` dan edit `pg_hba.conf`. Ubah barisan-barisan paling bawah diganti yang `local` dari `scram-sha-256` ke `trust`.
+10. Membuat database baru dengan nama `relaypro`.
+11. Melakukan upload file `.sql` menggunakan command berikut.
+```
+pg_restore -U postgres -d relaypro relaypro.dump
+```
 
 ### PHP 8.3
 1. Cari `.zip` file yang sudah didownload tadi. Kemudian buat direktori di `C:\`
@@ -67,6 +77,45 @@
 2. Pilih mau install di user ini saja atau all user.
 3. Kemudian `Next` dan pilih php file executable path-nya.
 4. Tinggal `Next` `Next` dan `Install`.
+
+### Source Code
+1. Pull source code
+2. Buat file `web.config` pada direktori `root folder\web`
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <directoryBrowse enabled="false" />
+    <defaultDocument>
+      <files>
+        <add value="index.php" />
+      </files>
+    </defaultDocument>
+    <rewrite>
+      <rules>
+        <rule name="Yii2 Rewrite" stopProcessing="true">
+          <match url="^(.*)$" ignoreCase="false" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" ignoreCase="false" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" ignoreCase="false" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="index.php/{R:1}" appendQueryString="true" />
+        </rule>
+      </rules>
+    </rewrite>
+    <handlers>
+      <add name="PHP-FastCGI" path="*.php" verb="*" modules="FastCgiModule" scriptProcessor="C:\php\php-cgi.exe" resourceType="File" requireAccess="Script" />
+    </handlers>
+  </system.webServer>
+</configuration>
+```
+3. mkdir bbrp file tersebut dalam direktori `web`.
+    1. `assets`
+    2. `uploads`
+    3. `uploads\signature`
+4. mkdir `runtime` dalam direktori `root`.
+5. Allow user `IIS` untuk dapat `write` folder folder tersebut.
+6. Setup `root\config\db.php`. Gunakan `localhost` untuk `host`nya.
 
 ## Konfigurasi IIS (Internet Information Services)
 ### Add module Fast CGI
