@@ -1,0 +1,1 @@
+netsh advfirewall import "C:\Firewall-Backup.wfw"
